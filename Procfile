@@ -1,0 +1,1 @@
+web: java $JAVA_OPTS -jar target/module2-1.0-SNAPSHOT-shaded.jar
