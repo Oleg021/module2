@@ -2,35 +2,31 @@ package com.nix.vyrvykhvost.model;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import javax.persistence.*;
 
-@Getter
 @Entity
+@Getter
+@Setter
 @NoArgsConstructor
 public class Mark {
-
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     protected String id;
 
-    @OneToOne
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
     private Subject subjectName;
 
-    @OneToOne
+    @ManyToOne
+    @JoinColumn(name = "student_id")
     private Student student;
 
     private int value;
 
-    public Mark(Subject subject, Student student, int value) {
-        this.subjectName = subject;
-        this.student = student;
-        this.value = value;
-    }
+
 
 }

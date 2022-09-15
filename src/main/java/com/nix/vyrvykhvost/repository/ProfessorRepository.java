@@ -1,42 +1,35 @@
 package com.nix.vyrvykhvost.repository;
 
+import com.nix.vyrvykhvost.configs.SessionFactoryUtil;
 import com.nix.vyrvykhvost.model.Professor;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.util.List;
 
-public class ProfessorRepository implements CrudeRepository<Professor> {
-    private final EntityManager entityManager;
+public class ProfessorRepository  {
 
-    public ProfessorRepository(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    private static ProfessorRepository instance;
+    private final SessionFactory sessionFactory = SessionFactoryUtil.getSessionFactory();
+
+    public ProfessorRepository() {
     }
 
-    public void save(Professor professor) {
-        entityManager.getTransaction().begin();
-        entityManager.persist(professor);
-        entityManager.getTransaction().commit();
-        entityManager.close();
-    }
-
-    @Override
-    public void saveAll(List<Professor> professors) {
-        entityManager.getTransaction().begin();
-        for (Professor teacher : professors) {
-            entityManager.persist(teacher);
+    public static ProfessorRepository getInstance(){
+        if (instance==null){
+            instance = new ProfessorRepository();
         }
-        entityManager.getTransaction().commit();
+        return instance;
     }
 
-    public List<Professor> findByLastName(String name) {
-        entityManager.getTransaction().begin();
-        Query query = entityManager.createQuery("from Professor with lastName =: i ");
-        query.setParameter("i", name);
-        List<Professor> professors = query.getResultList();
-        entityManager.flush();
-        entityManager.getTransaction().commit();
-        return professors;
 
+    public List findByLastName(String name) {
+        Session session = sessionFactory.openSession();
+        return session.createQuery("select lector from Lector lector where lector.lastName like :lastName", Professor.class)
+                .setParameter("lastName", "%" + name + "%")
+                .getResultList();
     }
+
 }

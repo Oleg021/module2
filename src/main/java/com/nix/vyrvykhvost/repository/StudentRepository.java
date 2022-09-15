@@ -1,58 +1,38 @@
 package com.nix.vyrvykhvost.repository;
 
+import com.nix.vyrvykhvost.configs.SessionFactoryUtil;
 import com.nix.vyrvykhvost.model.Student;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.util.List;
 
-public class StudentRepository implements CrudeRepository<Student> {
-    private final EntityManager entityManager;
+public class StudentRepository  {
 
-    public StudentRepository(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    private final SessionFactory sessionFactory = SessionFactoryUtil.getSessionFactory();
+    private static StudentRepository instance;
+
+    public StudentRepository() {
     }
 
-    public void save(Student student) {
-        entityManager.getTransaction().begin();
-        entityManager.persist(student);
-        entityManager.flush();
-        entityManager.getTransaction().commit();
-    }
-
-    @Override
-    public void saveAll(List<Student> students) {
-        entityManager.getTransaction().begin();
-        for(Student student : students) {
-            entityManager.persist(student);
+    public static StudentRepository getInstance(){
+        if (instance == null){
+            instance = new StudentRepository();
         }
-        entityManager.flush();
-        entityManager.clear();
-        entityManager.getTransaction().commit();
+        return instance;
     }
 
-    public void findStudentWithHighestGrades(){
-        entityManager.getTransaction().begin();
-        Query query = entityManager.createQuery("""
-                SELECT avg(gr.value) as averageValue, s.lastName from
-                Grade gr LEFT JOIN Student s on gr.student = s.id
-                Group by s.lastName
-                ORDER by averageValue DESC
-                """);
-        List groups = query.getResultList();
-        entityManager.flush();
-        entityManager.getTransaction().commit();
-    }
 
-    public List<Student> findByGrade(double sum) {
-        entityManager.getTransaction().begin();
-        Query query = entityManager.createNativeQuery("Select avg(gr.value), s.* " +
-                "from grade as gr LEFT JOIN Student as s on gr.student_id = s.id\n" +
-                "Group by s.id Having avg(gr.value) > ?", Student.class);
-        query.setParameter(1,sum);
-        List<Student> students = query.getResultList();
-        entityManager.flush();
-        entityManager.getTransaction().commit();
-        return students;
+    public List<Student> findStudentWithHighestGrades(double expectedGrade) {
+        Session session = sessionFactory.openSession();
+        List<Student> result = session.createQuery("select * from Student s " +
+                        "where (select avg(g.grade) " +
+                        "from Grade g " +
+                        "where g.student.id = s.id) > :expectedGrade", Student.class)
+                .setParameter("expectedGrade", expectedGrade)
+                .list();
+        return result;
     }
 }

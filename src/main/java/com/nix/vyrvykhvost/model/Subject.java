@@ -2,15 +2,15 @@ package com.nix.vyrvykhvost.model;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import javax.persistence.*;
+import java.util.Set;
 
-@Getter
 @Entity
+@Getter
+@Setter
 @NoArgsConstructor
 public class Subject {
 
@@ -18,16 +18,19 @@ public class Subject {
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     private String id;
-
+    private String code;
     private String name;
-
-    @OneToOne(mappedBy = "subjectName")
-    Mark subjectMark;
-
-    public Subject(String name) {
-        this.name = name;
-    }
-
-    @OneToOne(mappedBy = "subject")
+    @OneToOne
+    @JoinColumn(name = "lector_id")
     private Professor professor;
+    @OneToMany(mappedBy = "subjectName")
+    private Set<Mark> marks;
+
+    @Override
+    public String toString() {
+        return "Lesson{" +
+                "code='" + code + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
 }

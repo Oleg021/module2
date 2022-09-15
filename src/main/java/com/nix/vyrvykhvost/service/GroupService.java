@@ -2,31 +2,35 @@ package com.nix.vyrvykhvost.service;
 
 import com.nix.vyrvykhvost.model.Group;
 import com.nix.vyrvykhvost.repository.GroupRepository;
-import com.nix.vyrvykhvost.repository.StudentRepository;
 
 import java.util.List;
+import java.util.Map;
 
 public class GroupService {
-
-    private final GroupRepository repository;
+    private static GroupService instance;
+    private GroupRepository repository;
 
     public GroupService(GroupRepository repository) {
         this.repository = repository;
     }
 
-    public void saveGroup(Group group) {
-        repository.save(group);
+    public static GroupService getInstance(){
+        if (instance== null){
+            instance = new GroupService(GroupRepository.getInstance());
+        }
+        return instance;
     }
 
     public List<Group> findByName(String name){
         return repository.findByName(name);
     }
 
-    public void studentQuantity(){
-        repository.studentQuantity();
+    public Map<String, Integer> studentQuantity(){
+        return repository.studentQuantity();
     }
-    public void studentAverageGrades(){
-        repository.averageGrade();
+
+    public Map<Group, Double> averageGrade(){
+        return repository.averageGrade();
     }
 
 

@@ -1,62 +1,82 @@
 package com.nix.vyrvykhvost.repository;
 
+import com.nix.vyrvykhvost.configs.HibernateUtil;
+import com.nix.vyrvykhvost.configs.SessionFactoryUtil;
 import com.nix.vyrvykhvost.model.Group;
+import com.nix.vyrvykhvost.model.Mark;
+import com.nix.vyrvykhvost.model.Student;
+import org.hibernate.SessionFactory;
 
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
+import org.hibernate.Session;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GroupRepository {
 
-    private final EntityManager entityManager;
+    private static GroupRepository instance;
+    private final SessionFactory sessionFactory = SessionFactoryUtil.getSessionFactory();
 
-    public GroupRepository(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public GroupRepository() {
     }
 
-    public void save(Group group) {
-        entityManager.getTransaction().begin();
-        entityManager.persist(group);
-        entityManager.getTransaction().commit();
+    public static GroupRepository getInstance(){
+        if (instance == null){
+            instance = new GroupRepository();
+        }
+        return instance;
     }
-
 
     public List<Group> findByName(String name) {
-        entityManager.getTransaction().begin();
-        Query query = entityManager.createQuery("from Group where name like :name");
-        query.setParameter("name", "%" + name + "%");
-        List<Group> groups = query.getResultList();
-        entityManager.flush();
-        entityManager.getTransaction().commit();
-        return groups;
+        Session session = sessionFactory.openSession();
+        List<Group> groupList = session.createQuery("select * from Group group where group.name like :name", Group.class).setParameter("name", "%" + name + "%").getResultList();
+        return groupList;
     }
 
-    public void studentQuantity() {
-        entityManager.getTransaction().begin();
-        Query query = entityManager.createQuery("""
-                SELECT count(s.groupId) as count, gr.name
-                FROM
-                Student as s LEFT JOIN Group as gr ON gr.id = s.groupId
-                Group by gr.name
-                """);
-        List<Object[]>groups = query.getResultList();
-        groups.forEach(x -> {
-            System.out.println(x[1] + " : " + x[0]);
+    public Map<String, Integer> studentQuantity() {
+        Session session = sessionFactory.openSession();
+        Map<String, Integer> result = new HashMap<>();
+        List resultList = session.createQuery("select n.group.name, count (n.id) from Student n group by n.group.name").getResultList();
+        resultList.forEach(o -> {Object[] object = (Object[]) o;
+            result.put((String) object[0], (Integer) object[1]);
         });
-        entityManager.flush();
-        entityManager.getTransaction().commit();
-
+        return result;
     }
 
-    public void averageGrade(){
-        entityManager.getTransaction().begin();
-        Query query = entityManager.createNamedQuery("FIND_AVG_GRADE");
-        List<Object[]> groups = query.getResultList();
-        groups.forEach(x -> {
-            System.out.println(x[2] + " : " + x[0]);
+    public Map<Group, Double> averageGrade() {
+        Session session = sessionFactory.openSession();
+        List<Mark> grades = session.createQuery("select grade from Grade grade").getResultList();
+        grades.size();
+        Map<Student, List<Mark>> studentListMap = new HashMap<>();
+        Map<Group, List<Student>> groupListMap = new HashMap<>();
+        grades.forEach(mark -> {
+            studentListMap.putIfAbsent(mark.getStudent(), new ArrayList<>());
+            List<Mark> list = studentListMap.get(mark.getStudent());
+            list.add(mark);
         });
-        entityManager.flush();
-        entityManager.getTransaction().commit();
+        studentListMap.forEach((student, marks1) -> {
+            groupListMap.putIfAbsent(student.getGroupId(), new ArrayList<>());
+            List<Student> studentList = groupListMap.get(student.getGroupId());
+            studentList.add(student);
+        });
+        Map<Group, Double> result = new HashMap<Group, Double>();
+        for (Map.Entry<Group, List<Student>> map: groupListMap.entrySet()){
+            Group key  = map.getKey();
+            int count = 0;
+            double sum = 0;
+            List<Student> value = map.getValue();
+            for (Student student:value){
+                List<Mark> marks = studentListMap.get(student);
+                for (Mark mark : marks){
+                    count++;
+                    sum+= mark.getValue();
+                }
+            }
+            result.put(key,(sum / count));
+        }
+        return result;
     }
 
 }
